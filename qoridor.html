@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#14100c"/>
+<title>QUORIDOR — Dark Stone</title>
+
+<style>
+:root{
+  --red:#e25560;
+  --green:#4ec98a;
+  --btn-height:52px;
+  --gap:3px;
+  --wall-thickness:10px;
+}
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  width:100%;
+  min-height:100%;
+  overflow-x:hidden;
+  color:#d8cdbb;
+  font-family:"Segoe UI",Tahoma,Verdana,sans-serif;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(120,95,65,.20), transparent 45%),
+    radial-gradient(circle at 80% 90%, rgba(0,0,0,.50), transparent 55%),
+    linear-gradient(165deg,#2b241c,#1d1813 55%,#14100c);
+}
+
+body{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:100dvh;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    12px
+    max(24px, env(safe-area-inset-bottom))
+    12px;
+}
+
+#background{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.75;
+}
+
+button{
+  font-family:inherit;
+  touch-action:manipulation;
+}
+
+.menu,
+#game-area{
+  position:relative;
+  z-index:2;
+  width:clamp(230px,96vw,430px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+#title{
+  font-size:clamp(34px,10vw,48px);
+  font-weight:800;
+  letter-spacing:7px;
+  color:#d9c5a2;
+  margin-bottom:24px;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.75),
+    0 5px 18px rgba(0,0,0,.65);
+  animation:titleGlow 4.5s ease-in-out infinite;
+}
+
+@keyframes titleGlow{
+  0%,100%{text-shadow:0 1px 0 rgba(0,0,0,.75),0 5px 18px rgba(0,0,0,.65)}
+  50%{text-shadow:0 1px 0 rgba(0,0,0,.75),0 7px 24px rgba(255,205,140,.16)}
+}
+
+.menu-levels{
+  display:flex;
+  flex-direction:column;
+  gap:13px;
+  width:100%;
+  align-items:center;
+}
+
+.btn{
+  position:relative;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:800;
+  letter-spacing:2px;
+  color:#e9dcc2;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,225,180,.12) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(0,0,0,.25) 0%, transparent 60%),
+    linear-gradient(180deg,#54402c 0%,#4a3526 15%,#3a2b1d 58%,#281d13 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.25),
+    inset 0 -4px 8px rgba(0,0,0,.42),
+    inset 0 0 20px rgba(0,0,0,.15),
+    0 7px 0 #171009,
+    0 14px 22px rgba(0,0,0,.5),
+    0 0 0 1px rgba(0,0,0,.3);
+  transition:transform .12s ease,box-shadow .14s ease,filter .15s ease;
+  outline:none;
+  overflow:hidden;
+  touch-action:manipulation;
+}
+
+.btn::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 25% 15%, rgba(255,255,255,.08) 0%, transparent 40%),
+    radial-gradient(circle at 75% 85%, rgba(0,0,0,.15) 0%, transparent 50%);
+  opacity:.6;
+}
+
+.btn:hover{
+  filter:brightness(1.12);
+}
+
+.btn:active{
+  transform:translateY(5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.10),
+    inset 0 -3px 7px rgba(0,0,0,.42),
+    0 2px 0 #171009,
+    0 7px 13px rgba(0,0,0,.45);
+}
+
+.menu-levels .btn{
+  width:min(310px,90%);
+  height:var(--btn-height);
+  font-size:18px;
+  text-transform:lowercase;
+  animation:levitate 3s ease-in-out infinite;
+}
+
+.menu-levels .btn:nth-child(1){
+  animation-delay:0s;
+}
+
+.menu-levels .btn:nth-child(2){
+  animation-delay:.4s;
+}
+
+.menu-levels .btn:nth-child(3){
+  animation-delay:.8s;
+}
+
+.menu-levels .btn:nth-child(4){
+  animation-delay:1.2s;
+}
+
+@keyframes levitate{
+  0%,100%{
+    transform:translateY(0);
+    box-shadow:
+      inset 0 1px 0 rgba(255,225,180,.25),
+      inset 0 -4px 8px rgba(0,0,0,.42),
+      inset 0 0 20px rgba(0,0,0,.15),
+      0 7px 0 #171009,
+      0 14px 22px rgba(0,0,0,.5),
+      0 0 0 1px rgba(0,0,0,.3);
+  }
+  50%{
+    transform:translateY(-4px);
+    box-shadow:
+      inset 0 1px 0 rgba(255,225,180,.28),
+      inset 0 -4px 8px rgba(0,0,0,.42),
+      inset 0 0 20px rgba(0,0,0,.15),
+      0 11px 0 #171009,
+      0 18px 28px rgba(0,0,0,.55),
+      0 0 0 1px rgba(0,0,0,.3);
+  }
+}
+
+.menu-bottom-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  margin-top:22px;
+}
+
+.btn-icon{
+  position:relative;
+  width:50px;
+  height:50px;
+  border:none;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:21px;
+  color:#e2d0ae;
+  background:
+    radial-gradient(circle at 34% 28%,#7a6a58 0%,#5a4a38 30%,#3b3025 62%,#241c14 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.22),
+    inset 0 -5px 10px rgba(0,0,0,.5),
+    inset 0 0 15px rgba(0,0,0,.2),
+    0 7px 0 #171009,
+    0 13px 18px rgba(0,0,0,.5),
+    0 0 0 1px rgba(0,0,0,.3);
+  transition:transform .12s,filter .15s;
+  touch-action:manipulation;
+}
+
+.btn-icon::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.08) 0%, transparent 50%);
+  pointer-events:none;
+}
+
+.btn-icon::after{
+  content:"";
+  position:absolute;
+  inset:4px;
+  border-radius:50%;
+  border:1px solid rgba(255,225,180,.12);
+  pointer-events:none;
+}
+
+.btn-icon:hover{
+  filter:brightness(1.15);
+}
+
+.btn-icon:active{
+  transform:translateY(4px) scale(.97);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.10),
+    inset 0 -3px 7px rgba(0,0,0,.5),
+    0 2px 0 #171009,
+    0 6px 10px rgba(0,0,0,.45);
+}
+
+.text-author{
+  color:#a99878;
+  font-weight:700;
+  font-size:13px;
+  letter-spacing:1.5px;
+  text-align:center;
+  text-transform:lowercase;
+}
+
+#game-area{
+  position:relative;
+}
+
+#ai-thinking{
+  position:absolute;
+  top:-10px;
+  right:0;
+  z-index:60;
+  display:none;
+  padding:8px 13px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.5px;
+  color:#e2d0ae;
+  background:linear-gradient(180deg,#4a382a,#2b2118);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.14),
+    0 7px 14px rgba(0,0,0,.5);
+  animation:thinkPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes thinkPulse{
+  0%,100%{opacity:.72}
+  50%{opacity:1}
+}
+
+#board-scene{
+  width:100%;
+  margin-top:16px;
+  perspective:950px;
+  perspective-origin:50% 35%;
+  pointer-events:none;
+}
+
+#board-frame{
+  position:relative;
+  width:100%;
+  padding:14px;
+  border-radius:18px;
+  transform:rotateX(14deg);
+  transform-style:preserve-3d;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(255,225,180,.09) 0%,transparent 38%),
+    repeating-linear-gradient(90deg,
+      rgba(0,0,0,.18) 0 1px,
+      transparent 1px 7px,
+      rgba(255,220,170,.04) 7px 9px,
+      transparent 9px 17px),
+    linear-gradient(150deg,#4a3828 0%,#3a2a1d 40%,#2b2015 70%,#1b130c 100%);
+  border:1px solid rgba(255,220,170,.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.18),
+    inset 0 -10px 18px rgba(0,0,0,.55),
+    inset 0 0 30px rgba(0,0,0,.2),
+    0 16px 0 #100b07,
+    0 30px 36px rgba(0,0,0,.6),
+    0 0 0 1px rgba(0,0,0,.4);
+  animation:frameBreathe 6s ease-in-out infinite;
+}
+
+@keyframes frameBreathe{
+  0%,100%{box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.14),
+    inset 0 -10px 18px rgba(0,0,0,.55),
+    0 16px 0 #100b07,
+    0 30px 36px rgba(0,0,0,.6)}
+  50%{box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.18),
+    inset 0 -10px 18px rgba(0,0,0,.55),
+    0 16px 0 #100b07,
+    0 32px 42px rgba(0,0,0,.65),
+    0 0 26px rgba(255,190,120,.07)}
+}
+
+#board{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  grid-template-rows:repeat(9,1fr);
+  gap:var(--gap);
+  width:100%;
+  aspect-ratio:1;
+  border-radius:9px;
+  pointer-events:auto;
+  touch-action:manipulation;
+  box-shadow:
+    inset 0 4px 12px rgba(0,0,0,.6),
+    inset 0 0 0 1px rgba(0,0,0,.4),
+    inset 0 0 20px rgba(0,0,0,.3);
+}
+
+.cell{
+  position:relative;
+  border-radius:6px;
+  cursor:pointer;
+  overflow:hidden;
+  touch-action:manipulation;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(214,187,143,.22) 0%, transparent 48%),
+    radial-gradient(circle at 72% 78%, rgba(0,0,0,.28) 0%, transparent 52%),
+    linear-gradient(150deg,#a08a6a 0%,#8a7458 30%,#75634c 55%,#5c4d3b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,230,190,.18),
+    inset 0 -3px 5px rgba(0,0,0,.38),
+    inset 0 0 8px rgba(0,0,0,.15),
+    0 2px 4px rgba(0,0,0,.32);
+  transition:filter .12s,transform .12s,box-shadow .12s;
+}
+
+.cell::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 30% 32%, rgba(255,240,210,.15) 0 7%, transparent 8%),
+    radial-gradient(circle at 68% 64%, rgba(0,0,0,.25) 0 6%, transparent 7%),
+    radial-gradient(circle at 52% 80%, rgba(255,240,210,.10) 0 5%, transparent 6%);
+  pointer-events:none;
+  opacity:.3;
+}
+
+.cell::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(45deg,
+      rgba(255,255,255,.02) 0 1px,
+      transparent 1px 3px);
+  pointer-events:none;
+  opacity:.5;
+}
+
+.cell.can-move{
+  cursor:pointer;
+}
+
+.cell.can-move::before{
+  content:"";
+  position:absolute;
+  inset:2px;
+  border-radius:5px;
+  border:1px solid rgba(255,220,160,.35);
+  pointer-events:none;
+  animation:cellReady 1.6s ease-in-out infinite;
+}
+
+@keyframes cellReady{
+  0%,100%{opacity:.45}
+  50%{opacity:1}
+}
+
+.cell:active{
+  filter:brightness(1.18);
+  transform:scale(.97);
+}
+
+.move-dot{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:25%;
+  height:25%;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  animation:dotPulse 1.3s ease-in-out infinite;
+}
+
+.move-dot.red{
+  background:
+    radial-gradient(circle at 35% 30%,#ffd2d8 0%,#e25560 58%,#831d26 100%);
+  box-shadow:
+    0 0 10px rgba(226,85,96,.6),
+    0 3px 6px rgba(0,0,0,.5),
+    inset 0 1px 2px rgba(255,255,255,.3);
+}
+
+.move-dot.green{
+  background:
+    radial-gradient(circle at 35% 30%,#d8f7e7 0%,#4ec98a 58%,#1c6640 100%);
+  box-shadow:
+    0 0 10px rgba(78,201,138,.55),
+    0 3px 6px rgba(0,0,0,.5),
+    inset 0 1px 2px rgba(255,255,255,.25);
+}
+
+@keyframes dotPulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.8}
+  50%{transform:translate(-50%,-50%) scale(1.13);opacity:1}
+}
+
+.pawn{
+  position:absolute;
+  z-index:30;
+  border-radius:50% 50% 42% 42%;
+  pointer-events:none;
+  transition:left .18s cubic-bezier(.2,.8,.3,1),top .18s cubic-bezier(.2,.8,.3,1),transform .18s ease;
+}
+
+.pawn.red{
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.7) 0%, transparent 30%),
+    radial-gradient(circle at 72% 78%, rgba(0,0,0,.5) 0%, transparent 55%),
+    linear-gradient(160deg,#d86a74 0%,#b84a54 30%,#93212c 55%,#5c1119 100%);
+  box-shadow:
+    inset 0 -6px 10px rgba(0,0,0,.5),
+    inset 0 2px 6px rgba(255,255,255,.2),
+    inset 0 0 15px rgba(0,0,0,.2),
+    0 10px 16px rgba(0,0,0,.6),
+    0 0 14px rgba(226,85,96,.3),
+    0 0 0 1px rgba(0,0,0,.3);
+}
+
+.pawn.green{
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.65) 0%, transparent 30%),
+    radial-gradient(circle at 72% 78%, rgba(0,0,0,.48) 0%, transparent 55%),
+    linear-gradient(160deg,#73c799 0%,#53a779 30%,#2c7d51 55%,#16452c 100%);
+  box-shadow:
+    inset 0 -6px 10px rgba(0,0,0,.48),
+    inset 0 2px 6px rgba(255,255,255,.18),
+    inset 0 0 15px rgba(0,0,0,.18),
+    0 10px 16px rgba(0,0,0,.6),
+    0 0 14px rgba(78,201,138,.28),
+    0 0 0 1px rgba(0,0,0,.3);
+}
+
+.pawn.pulse{
+  animation:pawnPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes pawnPulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.06)}
+}
+
+.barrier{
+  position:absolute;
+  z-index:25;
+  border-radius:5px;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(
+      92deg,
+      rgba(255,255,255,.12) 0 1px,
+      rgba(0,0,0,.12) 1px 3px,
+      transparent 3px 8px
+    ),
+    linear-gradient(165deg,#f0cd9b 0%,#d0a068 30%,#b98a58 52%,#82552a 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255,240,210,.5),
+    inset 0 -4px 7px rgba(60,30,5,.5),
+    inset 0 0 10px rgba(0,0,0,.2),
+    0 7px 0 #4a2d10,
+    0 13px 16px rgba(0,0,0,.5),
+    0 0 0 1px rgba(0,0,0,.3);
+}
+
+.barrier.preview{
+  opacity:.72;
+  filter:saturate(.85) brightness(1.12);
+  box-shadow:
+    inset 0 2px 0 rgba(255,240,210,.4),
+    inset 0 -4px 7px rgba(60,30,5,.4),
+    0 5px 0 #4a2d10,
+    0 10px 14px rgba(0,0,0,.45);
+  animation:previewWood 1.5s ease-in-out infinite;
+}
+
+@keyframes previewWood{
+  0%,100%{opacity:.55}
+  50%{opacity:.82}
+}
+
+.buttons-row{
+  margin-top:24px;
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  gap:9px;
+}
+
+.buttons-row .btn{
+  flex:1;
+  min-width:0;
+  height:var(--btn-height);
+  font-size:16px;
+  text-transform:lowercase;
+}
+
+#barrierBtn{
+  font-size:15px;
+}
+
+#modal{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(10,7,4,.75);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+
+#modal.active{
+  display:flex;
+}
+
+#modalContent{
+  width:min(340px,94vw);
+  padding:26px 20px 20px;
+  border-radius:16px;
+  color:#d8cdbb;
+  text-align:center;
+  background:
+    linear-gradient(180deg,rgba(255,225,180,.08) 0%,transparent 40%),
+    linear-gradient(160deg,#4a3828 0%,#352818 40%,#2a2016 60%,#1d1610 100%);
+  border:1px solid rgba(255,220,170,.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255,225,180,.18),
+    inset 0 -10px 18px rgba(0,0,0,.45),
+    inset 0 0 25px rgba(0,0,0,.2),
+    0 22px 36px rgba(0,0,0,.65),
+    0 0 0 1px rgba(0,0,0,.4);
+  animation:modalIn .22s cubic-bezier(.2,.9,.3,1);
+}
+
+@keyframes modalIn{
+  from{opacity:0;transform:scale(.93) translateY(14px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+
+#modalContent h2{
+  margin:0 0 14px;
+  font-size:22px;
+  letter-spacing:2px;
+  color:#e6d4b0;
+  text-transform:lowercase;
+}
+
+#modalBody{
+  white-space:pre-line;
+  font-weight:600;
+  font-size:14px;
+  line-height:1.55;
+}
+
+.modal-btn-col{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:18px;
+}
+
+.modal-btn-col .btn{
+  height:46px;
+  font-size:16px;
+}
+
+@media (max-height:640px){
+  #title{margin-bottom:14px}
+  .menu-levels{gap:9px}
+  .menu-levels .btn{height:46px;font-size:16px}
+  .buttons-row{margin-top:14px}
+  .buttons-row .btn{height:46px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="background"></canvas>
+
+<div id="menuBlock" class="menu">
+  <div id="title">QUORIDOR</div>
+
+  <div class="menu-levels">
+    <button class="btn" data-action="level" data-level="1">легко</button>
+    <button class="btn" data-action="level" data-level="2">средне</button>
+    <button class="btn" data-action="level" data-level="3">сложно</button>
+    <button class="btn" data-action="level" data-level="0">два игрока</button>
+  </div>
+
+  <div class="menu-bottom-row">
+    <button id="settingsBtn" class="btn-icon" data-action="settings">⚙</button>
+    <div class="text-author">artiomyo games<br></div>
+    <button id="showHelp" class="btn-icon" data-action="help">?</button>
+  </div>
+</div>
+
+<div id="game-area" style="display:none">
+  <div id="ai-thinking">🤖 бот думает...</div>
+
+  <div id="board-scene">
+    <div id="board-frame">
+      <div id="board"></div>
+    </div>
+  </div>
+
+  <div class="buttons-row" id="main-buttons">
+    <button id="menuBtn" class="btn" data-action="menu">меню</button>
+    <button id="restartBtn" class="btn" data-action="restart">заново</button>
+    <button id="barrierBtn" class="btn" data-action="barrier">барьеры</button>
+  </div>
+
+  <div class="buttons-row" id="barrier-buttons" style="display:none;">
+    <button id="rotateBtn" class="btn" data-action="rotate">повернуть</button>
+    <button id="confirmBtn" class="btn" data-action="confirm">✓</button>
+    <button id="cancelBarrierBtn" class="btn" data-action="cancel">×</button>
+  </div>
+</div>
+
+<div id="modal">
+  <div id="modalContent">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+const n = 9;
+const maxB = 10;
+
+const board = document.getElementById('board');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const aiThinkingEl = document.getElementById('ai-thinking');
+const menuBlock = document.getElementById('menuBlock');
+const gameArea = document.getElementById('game-area');
+const mainButtons = document.getElementById('main-buttons');
+const barrierButtons = document.getElementById('barrier-buttons');
+const barrierBtn = document.getElementById('barrierBtn');
+
+let turn = 'red';
+let players = {
+  red: {r: 4, c: 0},
+  green: {r: 4, c: 8}
+};
+let barriers = [];
+let wallsLeft = {red: maxB, green: maxB};
+let placing = false;
+let orient = 'vertical';
+let previewWall = null;
+let aiLevel = 0;
+let aiThinking = false;
+
+/* живой фон: тёплая пыль и листья */
+const canvas = document.getElementById('background');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeBg(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function createParticles(){
+  particles = [];
+
+  for(let i = 0; i < 34; i++){
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 4 + 1.5,
+      speed: Math.random() * .35 + .08,
+      drift: Math.random() * .35 - .17,
+      angle: Math.random() * Math.PI * 2,
+      spin: Math.random() * .012 - .006,
+      type: Math.random() < .72 ? 'dust' : 'leaf',
+      color: Math.random() < .72
+        ? ['rgba(255,214,160,.55)','rgba(214,178,124,.45)','rgba(255,190,120,.35)'][Math.floor(Math.random() * 3)]
+        : ['rgba(176,124,68,.55)','rgba(140,96,52,.5)','rgba(196,148,92,.4)'][Math.floor(Math.random() * 3)]
+    });
+  }
+}
+
+function drawBg(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  particles.forEach(p => {
+    p.y -= p.speed;
+    p.x += p.drift + Math.sin(p.angle) * .18;
+    p.angle += p.spin;
+
+    if(p.y < -25){
+      p.y = canvas.height + 25;
+      p.x = Math.random() * canvas.width;
+    }
+
+    if(p.x < -25) p.x = canvas.width + 25;
+    if(p.x > canvas.width + 25) p.x = -25;
+
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.angle);
+    ctx.fillStyle = p.color;
+
+    if(p.type === 'dust'){
+      ctx.beginPath();
+      ctx.arc(0,0,p.size / 2,0,Math.PI * 2);
+      ctx.fill();
+    }else{
+      ctx.beginPath();
+      ctx.ellipse(0,0,p.size,p.size * .55,0,0,Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  });
+
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize', () => {
+  resizeBg();
+  createParticles();
+  render();
+});
+
+function showMenu(show){
+  menuBlock.style.display = show ? '' : 'none';
+  gameArea.style.display = show ? 'none' : '';
+}
+
+function openModal(title,text,buttons){
+  modalTitle.textContent = title;
+  modalBody.textContent = text;
+
+  modalBody.querySelectorAll('.modal-btn-col').forEach(el => el.remove());
+
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-btn-col';
+
+  (buttons || [{label:'закрыть',action:'close'}]).forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = item.label;
+    btn.dataset.action = item.action;
+    wrap.appendChild(btn);
+  });
+
+  modalBody.appendChild(wrap);
+  modal.classList.add('active');
+}
+
+function closeModal(){
+  modal.classList.remove('active');
+}
+
+document.addEventListener('click', event => {
+  const btn = event.target.closest('[data-action]');
+  if(!btn) return;
+
+  const action = btn.dataset.action;
+
+  if(action === 'close'){
+    closeModal();
+    return;
+  }
+
+  if(action === 'level'){
+    aiLevel = Number(btn.dataset.level);
+    showMenu(false);
+    restartGame();
+    return;
+  }
+
+  if(action === 'settings'){
+    openModal('настройки','Выбери режим в главном меню.');
+    return;
+  }
+
+  if(action === 'help'){
+    const text = aiLevel > 0
+      ? `Красный — ты. Зелёный — бот.
+Дойди до противоположной стороны.
+Барьеры нельзя ставить, если они полностью отрезают путь.`
+      : `Красный и зелёный играют по очереди.
+Дойди до противоположной стороны.
+Барьеры нельзя ставить, если они полностью отрезают путь.`;
+
+    openModal('правила',text);
+    return;
+  }
+
+  if(action === 'menu'){
+    openModal('меню','Вернуться в главное меню?',[
+      {label:'да',action:'menu-yes'},
+      {label:'нет',action:'close'}
+    ]);
+    return;
+  }
+
+  if(action === 'menu-yes'){
+    closeModal();
+    showMenu(true);
+    return;
+  }
+
+  if(action === 'restart'){
+    openModal('сброс','Начать заново?',[
+      {label:'да',action:'restart-yes'},
+      {label:'нет',action:'close'}
+    ]);
+    return;
+  }
+
+  if(action === 'restart-yes'){
+    closeModal();
+    restartGame();
+    return;
+  }
+
+  if(action === 'barrier'){
+    handleBarrierButton();
+    return;
+  }
+
+  if(action === 'rotate'){
+    rotatePreview();
+    return;
+  }
+
+  if(action === 'confirm'){
+    confirmBarrier();
+    return;
+  }
+
+  if(action === 'cancel'){
+    placing = false;
+    previewWall = null;
+    render();
+  }
+});
+
+modal.addEventListener('click', event => {
+  if(event.target === modal) closeModal();
+});
+
+document.addEventListener('keydown', event => {
+  if(event.key === 'Escape') closeModal();
+});
+
+board.addEventListener('pointerdown', event => {
+  const cell = event.target.closest('.cell');
+  if(!cell) return;
+
+  event.preventDefault();
+  cellClick(Number(cell.dataset.r), Number(cell.dataset.c));
+});
+
+function restartGame(){
+  players = {
+    red: {r: 4, c: 0},
+    green: {r: 4, c: 8}
+  };
+  barriers = [];
+  wallsLeft = {red: maxB, green: maxB};
+  placing = false;
+  previewWall = null;
+  aiThinking = false;
+
+  if(aiLevel === 1) turn = 'red';
+  else if(aiLevel === 3) turn = 'green';
+  else if(aiLevel === 2) turn = Math.random() < .5 ? 'red' : 'green';
+  else turn = 'red';
+
+  createBoard();
+  render();
+
+  if(aiLevel > 0 && turn === 'green'){
+    aiThinking = true;
+    setTimeout(aiMove,700);
+  }
+}
+
+function createBoard(){
+  board.innerHTML = '';
+
+  for(let r = 0; r < n; r++){
+    for(let c = 0; c < n; c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = String(r);
+      cell.dataset.c = String(c);
+      board.appendChild(cell);
+    }
+  }
+}
+
+function inBoard(r,c){
+  return r >= 0 && r < n && c >= 0 && c < n;
+}
+
+function occupied(r,c){
+  return (players.red.r === r && players.red.c === c) ||
+         (players.green.r === r && players.green.c === c);
+}
+
+function barrierBetween(r1,c1,r2,c2){
+  if(Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return false;
+
+  const minR = Math.min(r1,r2);
+  const minC = Math.min(c1,c2);
+
+  if(c1 !== c2){
+    return barriers.some(b =>
+      b.orientation === 'vertical' &&
+      b.c === minC &&
+      (b.r === r1 || b.r + 1 === r1)
+    );
+  }
+
+  return barriers.some(b =>
+    b.orientation === 'horizontal' &&
+    b.r === minR &&
+    (b.c === c1 || b.c + 1 === c1)
+  );
+}
+
+function canMove(r1,c1,r2,c2){
+  return inBoard(r2,c2) && !barrierBetween(r1,c1,r2,c2);
+}
+
+function pathExists(color){
+  const start = players[color];
+  const targetC = color === 'red' ? n - 1 : 0;
+  const seen = new Set([start.r + ',' + start.c]);
+  const queue = [{r:start.r,c:start.c}];
+
+  while(queue.length){
+    const cur = queue.shift();
+    if(cur.c === targetC) return true;
+
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nr = cur.r + dr;
+      const nc = cur.c + dc;
+      const key = nr + ',' + nc;
+
+      if(inBoard(nr,nc) && !seen.has(key) && canMove(cur.r,cur.c,nr,nc)){
+        seen.add(key);
+        queue.push({r:nr,c:nc});
+      }
+    }
+  }
+
+  return false;
+}
+
+function overlapsWall(r,c,o){
+  return barriers.some(b => {
+    if(b.r === r && b.c === c && b.orientation === o) return true;
+
+    if(o === 'vertical' && b.orientation === 'horizontal' && b.r === r && b.c === c) return true;
+    if(o === 'horizontal' && b.orientation === 'vertical' && b.r === r && b.c === c) return true;
+
+    if(o === 'vertical' && b.orientation === 'vertical' && b.c === c){
+      if(b.r + 1 === r || b.r === r + 1) return true;
+    }
+
+    if(o === 'horizontal' && b.orientation === 'horizontal' && b.r === r){
+      if(b.c + 1 === c || b.c === c + 1) return true;
+    }
+
+    return false;
+  });
+}
+
+function canPlaceBarrier(r,c,o){
+  if(!inBoard(r,c) || r >= n - 1 || c >= n - 1) return false;
+  if(overlapsWall(r,c,o)) return false;
+
+  barriers.push({r,c,orientation:o});
+  const ok = pathExists('red') && pathExists('green');
+  barriers.pop();
+
+  return ok;
+}
+
+function getJumpTargets(color){
+  const p = players[color];
+  const oppColor = color === 'red' ? 'green' : 'red';
+  const opp = players[oppColor];
+
+  const dr = opp.r - p.r;
+  const dc = opp.c - p.c;
+
+  if(Math.abs(dr) + Math.abs(dc) !== 1) return [];
+  if(!canMove(p.r,p.c,opp.r,opp.c)) return [];
+
+  const behindR = opp.r + dr;
+  const behindC = opp.c + dc;
+
+  const behindFree = inBoard(behindR,behindC) && !occupied(behindR,behindC);
+  const behindOpen = behindFree && canMove(opp.r,opp.c,behindR,behindC);
+
+  if(behindOpen) return [[behindR,behindC]];
+
+  const result = [];
+
+  if(dr !== 0){
+    for(const side of [-1,1]){
+      const r2 = opp.r;
+      const c2 = opp.c + side;
+
+      if(inBoard(r2,c2) && !occupied(r2,c2) && canMove(opp.r,opp.c,r2,c2)){
+        result.push([r2,c2]);
+      }
+    }
+  }else{
+    for(const side of [-1,1]){
+      const r2 = opp.r + side;
+      const c2 = opp.c;
+
+      if(inBoard(r2,c2) && !occupied(r2,c2) && canMove(opp.r,opp.c,r2,c2)){
+        result.push([r2,c2]);
+      }
+    }
+  }
+
+  return result;
+}
+
+function getLegalMoves(color){
+  const p = players[color];
+  const moves = [];
+
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const r = p.r + dr;
+    const c = p.c + dc;
+
+    if(inBoard(r,c) && !occupied(r,c) && canMove(p.r,p.c,r,c)){
+      moves.push([r,c]);
+    }
+  }
+
+  getJumpTargets(color).forEach(([r,c]) => moves.push([r,c]));
+
+  return moves;
+}
+
+function cellClick(r,c){
+  if(aiLevel > 0 && turn === 'green') return;
+
+  if(placing){
+    previewWall = (r < n - 1 && c < n - 1)
+      ? {r,c,orientation:orient}
+      : null;
+
+    render();
+    return;
+  }
+
+  move(r,c);
+}
+
+function move(r,c){
+  const legal = getLegalMoves(turn);
+
+  if(!legal.some(([mr,mc]) => mr === r && mc === c)) return;
+
+  players[turn] = {r,c};
+
+  if(checkWin()) return;
+
+  switchTurn();
+}
+
+function switchTurn(){
+  turn = turn === 'red' ? 'green' : 'red';
+  previewWall = null;
+
+  if(aiLevel > 0 && turn === 'green'){
+    aiThinking = true;
+    render();
+    setTimeout(aiMove,700);
+  }else{
+    render();
+  }
+}
+
+function checkWin(){
+  if(players.red.c === n - 1){
+    setTimeout(() => {
+      openModal('победа','Красный дошёл до цели!',[
+        {label:'в меню',action:'menu-yes'}
+      ]);
+    },120);
+    return true;
+  }
+
+  if(players.green.c === 0){
+    setTimeout(() => {
+      openModal('победа','Зелёный дошёл до цели!',[
+        {label:'в меню',action:'menu-yes'}
+      ]);
+    },120);
+    return true;
+  }
+
+  return false;
+}
+
+function handleBarrierButton(){
+  if(aiLevel > 0 && turn === 'green') return;
+
+  if(placing){
+    confirmBarrier();
+    return;
+  }
+
+  if(wallsLeft[turn] <= 0){
+    openModal('ошибка','У тебя не осталось барьеров.');
+    return;
+  }
+
+  placing = true;
+  previewWall = {r:4,c:4,orientation:orient};
+  render();
+}
+
+function rotatePreview(){
+  if(!placing) return;
+
+  if(!previewWall){
+    previewWall = {
+      r:4,c:4,
+      orientation: orient === 'vertical' ? 'horizontal' : 'vertical'
+    };
+  }else{
+    previewWall.orientation = previewWall.orientation === 'vertical'
+      ? 'horizontal'
+      : 'vertical';
+  }
+
+  orient = previewWall.orientation;
+  render();
+}
+
+function confirmBarrier(){
+  if(!previewWall || !canPlaceBarrier(previewWall.r,previewWall.c,previewWall.orientation)){
+    openModal('ошибка',`Здесь нельзя ставить барьер:
+он перекрывает последний путь или другую стену.`);
+    return;
+  }
+
+  barriers.push({...previewWall});
+  wallsLeft[turn]--;
+  placing = false;
+  previewWall = null;
+
+  switchTurn();
+}
+
+function render(){
+  board.querySelectorAll('.move-dot,.barrier,.pawn').forEach(el => el.remove());
+  board.querySelectorAll('.cell').forEach(cell => cell.classList.remove('can-move'));
+
+  barriers.forEach(b => drawWall(b.r,b.c,b.orientation,false));
+
+  if(placing && previewWall){
+    drawWall(previewWall.r,previewWall.c,previewWall.orientation,true);
+  }
+
+  renderPawn('red');
+  renderPawn('green');
+
+  if(!placing){
+    getLegalMoves(turn).forEach(([r,c]) => {
+      const cell = board.querySelector(`[data-r='${r}'][data-c='${c}']`);
+      if(!cell) return;
+
+      cell.classList.add('can-move');
+
+      const dot = document.createElement('div');
+      dot.className = 'move-dot ' + turn;
+      cell.appendChild(dot);
+    });
+
+    barrierBtn.textContent = `барьеры (${wallsLeft[turn]})`;
+  }
+
+  mainButtons.style.display = placing ? 'none' : 'flex';
+  barrierButtons.style.display = placing ? 'flex' : 'none';
+
+  if(!placing) previewWall = null;
+
+  aiThinkingEl.style.display = aiThinking ? 'block' : 'none';
+}
+
+function renderPawn(color){
+  let pawn = document.getElementById('pawn-' + color);
+
+  if(!pawn){
+    pawn = document.createElement('div');
+    pawn.id = 'pawn-' + color;
+    board.appendChild(pawn);
+  }
+
+  pawn.className = 'pawn ' + color + (turn === color ? ' pulse' : '');
+
+  const p = players[color];
+  const cell = board.querySelector(`[data-r='${p.r}'][data-c='${p.c}']`);
+
+  if(cell){
+    pawn.style.left = cell.offsetLeft + 'px';
+    pawn.style.top = cell.offsetTop + 'px';
+    pawn.style.width = cell.offsetWidth + 'px';
+    pawn.style.height = cell.offsetHeight + 'px';
+  }
+}
+
+function drawWall(r,c,o,preview){
+  const a = board.querySelector(`[data-r='${r}'][data-c='${c}']`);
+  if(!a) return;
+
+  const wall = document.createElement('div');
+  wall.className = 'barrier' + (preview ? ' preview' : '');
+
+  const w = a.offsetWidth;
+  const h = a.offsetHeight;
+  const gap = 3;
+  const thickness = 10;
+  const halfT = thickness / 2;
+
+  if(o === 'vertical'){
+    const b = board.querySelector(`[data-r='${r + 1}'][data-c='${c}']`);
+    if(!b) return;
+
+    wall.style.left = (a.offsetLeft + w + gap / 2 - halfT) + 'px';
+    wall.style.top = a.offsetTop + 'px';
+    wall.style.width = thickness + 'px';
+    wall.style.height = (h + gap + h) + 'px';
+  }else{
+    const b = board.querySelector(`[data-r='${r}'][data-c='${c + 1}']`);
+    if(!b) return;
+
+    wall.style.left = a.offsetLeft + 'px';
+    wall.style.top = (a.offsetTop + h + gap / 2 - halfT) + 'px';
+    wall.style.width = (w + gap + w) + 'px';
+    wall.style.height = thickness + 'px';
+  }
+
+  board.appendChild(wall);
+}
+
+function pathLength(color){
+  const start = players[color];
+  const targetC = color === 'red' ? n - 1 : 0;
+  const seen = new Set([start.r + ',' + start.c]);
+  const queue = [{r:start.r,c:start.c,d:0}];
+
+  while(queue.length){
+    const cur = queue.shift();
+    if(cur.c === targetC) return cur.d;
+
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nr = cur.r + dr;
+      const nc = cur.c + dc;
+      const key = nr + ',' + nc;
+
+      if(inBoard(nr,nc) && !seen.has(key) && canMove(cur.r,cur.c,nr,nc)){
+        seen.add(key);
+        queue.push({r:nr,c:nc,d:cur.d + 1});
+      }
+    }
+  }
+
+  return 99;
+}
+
+function evalPosition(){
+  const dGreen = pathLength('green');
+  const dRed = pathLength('red');
+
+  return (dRed - dGreen) + (wallsLeft.green - wallsLeft.red) * .15;
+}
+
+function aiMove(){
+  if(checkWin()){
+    aiThinking = false;
+    render();
+    return;
+  }
+
+  const barrierChance = aiLevel === 1 ? .15 : aiLevel === 2 ? .40 : .70;
+
+  if(wallsLeft.green > 0 && Math.random() < barrierChance && aiPlaceBarrier()){
+    aiThinking = false;
+    render();
+    return;
+  }
+
+  aiMakeMove();
+  aiThinking = false;
+  render();
+}
+
+function aiMakeMove(){
+  const moves = getLegalMoves('green');
+  if(!moves.length) return;
+
+  let best = moves[0];
+  let bestScore = -999;
+
+  for(const [r,c] of moves){
+    const old = {...players.green};
+    players.green = {r,c};
+
+    const score = evalPosition();
+    players.green = old;
+
+    if(score > bestScore){
+      bestScore = score;
+      best = [r,c];
+    }
+  }
+
+  players.green = {r:best[0],c:best[1]};
+
+  if(!checkWin()) switchTurn();
+}
+
+function aiPlaceBarrier(){
+  let best = null;
+  let bestScore = .2;
+
+  for(let r = 0; r < n - 1; r++){
+    for(let c = 0; c < n - 1; c++){
+      for(const o of ['vertical','horizontal']){
+        if(!canPlaceBarrier(r,c,o)) continue;
+
+        barriers.push({r,c,orientation:o});
+        const score = evalPosition();
+        barriers.pop();
+
+        if(score > bestScore){
+          bestScore = score;
+          best = {r,c,orientation:o};
+        }
+      }
+    }
+  }
+
+  if(!best) return false;
+
+  barriers.push(best);
+  wallsLeft.green--;
+  switchTurn();
+
+  return true;
+}
+
+resizeBg();
+createParticles();
+drawBg();
+
+createBoard();
+render();
+
+});
+</script>
+</body>
+</html>
